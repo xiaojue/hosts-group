@@ -1,19 +1,26 @@
 {
 	"name":"hosts-group",
 	"version":"0.0.1",
-	"author":{
+	"author":[{
 		"name":"xiaojue",
 		"email":"designsor@gmail.com",
 		"url":"http://www.tuer.me"
-	},
-	description:"a hosts group tools by hosts file",
-	keywords:[
+	}],
+	"description":"a hosts group tools by hosts file",
+	"keywords":[
 		"hosts",
-		"group"
+		"/etc/hosts",
+		"hosts file",
+		"change hosts"
+		"hosts group"
 	],
 	"main":"./index.js",
 	"repository":{
 		"type":"git",
 		"url":"https://github.com/xiaojue/hosts-group"
-	}
+	},
+	"engines":{
+		"node":"*"	
+	},
+	"license":"MIT"
 }
