@@ -203,5 +203,4 @@ hosts.prototype = {
 };
 
 var test = new hosts();
-test.activeGroup('defaultGroup');
 
