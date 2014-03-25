@@ -202,5 +202,5 @@ hosts.prototype = {
 	}
 };
 
-var test = new hosts();
+module.exports = new hosts();
 
