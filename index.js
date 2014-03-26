@@ -124,6 +124,21 @@ hosts.prototype = {
 			return hostsobject;
 		});
 	},
+	//去注释一个domain
+	active: function(domain, ip, groupName) {
+		this._batchHost(function(hostsobject) {
+			var group = hostsobject[groupName];
+			if (group) {
+				for (var i = 0; i < group.length; i++) {
+					var host = group[i];
+					if (host.domain == domain && host.ip == ip) {
+						host.disabled = false;
+					}
+				}
+			}
+			return hostsobject;
+		});
+	},
 	//注释一个组
 	disableGroup: function(groupName) {
 		this._batchHost(function(hostsobject) {
@@ -203,4 +218,4 @@ hosts.prototype = {
 };
 
 module.exports = new hosts();
-
+console.log(module.exports.get());
