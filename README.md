@@ -38,6 +38,7 @@ hosts.removeGroup(groupName);
 hosts.move(domain, ip, groupName, target_groupName);
 hosts.remove(domain, ip, groupName);
 hosts.disable(domain, ip, groupName);
+hosts.active(domain, ip, groupName);
 hosts.disableGroup(groupName);
 hosts.activeGroup(groupName);
 
