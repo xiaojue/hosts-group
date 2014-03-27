@@ -77,14 +77,14 @@ hosts.prototype = {
 			return hostsobject;
 		});
 	},
-	setGroup:function(oldName,newName){
-		this._batchHost(function(hostsobject){
-			if(hostsobject[oldName]){
+	setGroup: function(oldName, newName) {
+		this._batchHost(function(hostsobject) {
+			if (hostsobject[oldName]) {
 				hostsobject[newName] = hostsobject[oldName];
 				delete hostsobject[oldName];
 			}
 			return hostsobject;
-		}); 
+		});
 	},
 	move: function(domain, ip, groupName, target_groupName) {
 		this._batchHost(function(hostsobject) {
@@ -118,31 +118,34 @@ hosts.prototype = {
 			return hostsobject;
 		});
 	},
-	//注释一个domain
-	disable: function(domain, ip, groupName) {
+	setDomainDisabled: function(domain, ip, groupName, disabled) {
 		this._batchHost(function(hostsobject) {
 			var group = hostsobject[groupName];
 			if (group) {
 				for (var i = 0; i < group.length; i++) {
 					var host = group[i];
 					if (host.domain == domain && host.ip == ip) {
-						host.disabled = true;
+						host.disabled = disabled;
 					}
 				}
 			}
 			return hostsobject;
 		});
 	},
+	//注释一个domain
+	disable: function(domain, ip, groupName) {
+		this.setDomainDisabled(domain, ip, groupName, true);
+	},
 	//去注释一个domain
 	active: function(domain, ip, groupName) {
+		this.setDomainDisabled(domain, ip, groupName, false);
+	},
+	setGroupDisabled: function(grounName, disabled) {
 		this._batchHost(function(hostsobject) {
 			var group = hostsobject[groupName];
 			if (group) {
 				for (var i = 0; i < group.length; i++) {
-					var host = group[i];
-					if (host.domain == domain && host.ip == ip) {
-						host.disabled = false;
-					}
+					group[i].disabled = disabled;
 				}
 			}
 			return hostsobject;
@@ -150,27 +153,11 @@ hosts.prototype = {
 	},
 	//注释一个组
 	disableGroup: function(groupName) {
-		this._batchHost(function(hostsobject) {
-			var group = hostsobject[groupName];
-			if (group) {
-				for (var i = 0; i < group.length; i++) {
-					group[i].disabled = true;
-				}
-			}
-			return hostsobject;
-		});
+		this.setGroupDisabled(groupName, true);
 	},
 	//激活一个组
 	activeGroup: function(groupName) {
-		this._batchHost(function(hostsobject) {
-			var group = hostsobject[groupName];
-			if (group) {
-				for (var i = 0; i < group.length; i++) {
-					group[i].disabled = false;
-				}
-			}
-			return hostsobject;
-		});
+		this.setGroupDisabled(groupName, false);
 	},
 	//初始化hosts文件,生成默认分组
 	format: function() {
