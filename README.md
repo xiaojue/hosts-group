@@ -34,6 +34,7 @@ hosts.get(); //format hosts file and putout hosts object
 
 hosts.set(domain, ip, groupName);
 hosts.addGroup(groupName);
+hosts.setGroup(oldName,newName);
 hosts.removeGroup(groupName);
 hosts.move(domain, ip, groupName, target_groupName);
 hosts.remove(domain, ip, groupName);

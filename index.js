@@ -77,6 +77,15 @@ hosts.prototype = {
 			return hostsobject;
 		});
 	},
+	setGroup:function(oldName,newName){
+		this._batchHost(function(hostsobject){
+			if(hostsobject[oldName]){
+				hostsobject[newName] = hostsobject[oldName];
+				delete hostsobject[oldName];
+			}
+			return hostsobject;
+		}); 
+	},
 	move: function(domain, ip, groupName, target_groupName) {
 		this._batchHost(function(hostsobject) {
 			var group = hostsobject[groupName];
@@ -218,4 +227,3 @@ hosts.prototype = {
 };
 
 module.exports = new hosts();
-console.log(module.exports.get());
