@@ -141,7 +141,7 @@ hosts.prototype = {
 	active: function(domain, ip, groupName) {
 		this.setDomainDisabled(domain, ip, groupName, false);
 	},
-	setGroupDisabled: function(grounName, disabled) {
+	setGroupDisabled: function(groupName, disabled) {
 		this._batchHost(function(hostsobject) {
 			var group = hostsobject[groupName];
 			if (group) {
