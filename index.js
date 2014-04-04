@@ -33,6 +33,7 @@ hosts.prototype = {
 			var isGroupLine = line.match(groupReg);
 			if (isGroupLine) {
 				currentName = isGroupLine[1];
+				hostsobject[currentName] = [];
 			} else {
 				if (!this._isHostLine(line)) continue;
 				if (!currentName) currentName = defaultName;
