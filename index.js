@@ -43,17 +43,20 @@ hosts.prototype = {
 		return hostsobject;
 	},
 	//设置一个domain
-	set: function(domain, ip, groupName) {
+	set: function(domain, ip, groupName, olddomain, oldip) {
 		this._batchHost(function(hostsobject) {
 			groupName = groupName || defaultName;
 			if (!hostsobject[groupName]) hostsobject[groupName] = [];
 			var group = hostsobject[groupName];
 			var fixed = false;
-			for (var i = 0; i < group.length; i++) {
-				if (group[i].domain == domain) {
-					group[i].ip = ip;
-					fixed = true;
-					break;
+			if(olddomain && oldip){
+				for (var i = 0; i < group.length; i++) {
+					if (group[i].domain == olddomain && group[i].ip == oldip) {
+						group[i].ip = ip;
+						group[i].domain = domain;
+						fixed = true;
+						break;
+					}
 				}
 			}
 			if (!fixed) {
