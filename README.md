@@ -32,7 +32,7 @@ hosts.get(); //format hosts file and putout hosts object
  *      domain: 'test.com' } ] } 
  */
 
-hosts.set(domain, ip, groupName);
+hosts.set(domain, ip, groupName,olddomain,oldip);
 hosts.addGroup(groupName);
 hosts.setGroup(oldName,newName);
 hosts.removeGroup(groupName);
