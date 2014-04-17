@@ -49,7 +49,7 @@ hosts.prototype = {
 			if (!hostsobject[groupName]) hostsobject[groupName] = [];
 			var group = hostsobject[groupName];
 			var fixed = false;
-			if(olddomain && oldip){
+			if (olddomain && oldip) {
 				for (var i = 0; i < group.length; i++) {
 					if (group[i].domain == olddomain && group[i].ip == oldip) {
 						group[i].ip = ip;
@@ -60,11 +60,20 @@ hosts.prototype = {
 				}
 			}
 			if (!fixed) {
-				group.push({
-					ip: ip,
-					domain: domain,
-					disabled: false
-				});
+				var flg = false;
+				for (var key = 0; key < group.length; key++) {
+					if (group[key].domain == domain && group[key].ip == ip) {
+						flg = true;
+						break;
+					}
+				}
+				if (!flg) {
+					group.push({
+						ip: ip,
+						domain: domain,
+						disabled: false
+					});
+				}
 			}
 			return hostsobject;
 		});
@@ -218,3 +227,4 @@ hosts.prototype = {
 };
 
 module.exports = new hosts();
+
