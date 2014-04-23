@@ -9,6 +9,7 @@ Management your hosts with group
 var hosts = require('hosts-group');
 
 hosts.get(); //format hosts file and putout hosts object
+
 /**
  * { defaultGroup: 
  *  [ { ip: '1.1.1.1',
@@ -32,15 +33,24 @@ hosts.get(); //format hosts file and putout hosts object
  *      domain: 'test.com' } ] } 
  */
 
-hosts.set(domain, ip, groupName,olddomain,oldip);
+hosts.set(domain, ip, groupName, olddomain, oldip);
+
 hosts.addGroup(groupName);
+
 hosts.setGroup(oldName,newName);
+
 hosts.removeGroup(groupName);
+
 hosts.move(domain, ip, groupName, target_groupName);
+
 hosts.remove(domain, ip, groupName);
+
 hosts.disable(domain, ip, groupName);
+
 hosts.active(domain, ip, groupName);
+
 hosts.disableGroup(groupName);
+
 hosts.activeGroup(groupName);
 
 ```
