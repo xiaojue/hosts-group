@@ -40,7 +40,7 @@ function hosts() {
 */
 hosts.prototype = {
 	constructor: hosts,
-	//返回所有的group object
+	//读取host内容并解析成一个json对象
 	get: function() {
 		var hostsstr = fs.readFileSync(this.HOSTS, 'utf-8');
 		//一个domain 对应一个ip
@@ -51,7 +51,7 @@ hosts.prototype = {
 		var currentName;
         var currentLog = [];
 		for (var i = 0; i < lines.length; i++) {
-			var line = this.parseLine(lines[i]);
+			var line = this._parseLine(lines[i]);
             var type = line.type;
             var val = line.value;
             switch(type){
@@ -84,40 +84,6 @@ hosts.prototype = {
 		}
 		return hostsobject;
 	},
-    parseLine: function (line){
-        var obj;
-        var line = line.trim();
-        if(line){
-            var isGroupLine = line.match(groupReg);
-            obj = {};
-            if(isGroupLine){
-                obj.type = 3;
-                obj.value = isGroupLine[1];
-            }else{
-                var line2 = line.split(blankReg);
-                if(line2.length < 2 || !line2[0].match(/^\d|#[\d]/g)){
-                    obj.type = 2;
-                    obj.value = line;
-                }else{
-                    var ip = line2.shift();
-                    var domains = line2;
-                    var disabled = (/^#/).test(ip);
-                    if(disabled){
-                        ip = ip.slice(1);
-                    }
-                    obj.type = 1;
-                    obj.value = {};
-                    domains.forEach(function (domain){
-                        obj.value[domain] = {
-                            ip: ip,
-                            disabled: disabled/1
-                        }
-                    });
-                }
-            }
-        }
-        return obj;
-    },
 	//初始化hosts文件,生成默认分组
 	format: function() {
 		this._batchHost();
@@ -216,6 +182,40 @@ hosts.prototype = {
 			return hostsobject;
 		});
 	},
+    _parseLine: function (line){
+        var obj;
+        var line = line.trim();
+        if(line){
+            var isGroupLine = line.match(groupReg);
+            obj = {};
+            if(isGroupLine){
+                obj.type = 3;
+                obj.value = isGroupLine[1];
+            }else{
+                var line2 = line.split(blankReg);
+                if(line2.length < 2 || !line2[0].match(/^\d|#[\d]/g)){
+                    obj.type = 2;
+                    obj.value = line;
+                }else{
+                    var ip = line2.shift();
+                    var domains = line2;
+                    var disabled = (/^#/).test(ip);
+                    if(disabled){
+                        ip = ip.slice(1);
+                    }
+                    obj.type = 1;
+                    obj.value = {};
+                    domains.forEach(function (domain){
+                        obj.value[domain] = {
+                            ip: ip,
+                            disabled: disabled/1
+                        }
+                    });
+                }
+            }
+        }
+        return obj;
+    },
 	_batchHost: function(fn) {
 		var hostsobject = this.get();
 		hostsobject = fn ? fn(hostsobject) : hostsobject;
