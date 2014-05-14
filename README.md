@@ -6,7 +6,7 @@ hosts-group
 ## Usage
 
 ```bash
-npm install sheller
+npm install hosts-group
 ```
 
 ```js
