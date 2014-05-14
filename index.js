@@ -6,223 +6,317 @@
 var fs = require('fs');
 var os = require('os');
 var util = require('util');
+
+var HOSTS = os.platform() == 'win32' ? 'C:/Windows/System32/drivers/etc/hosts': '/etc/hosts';
+var EOL = os.EOL;
 var groupReg = /^## @(.*?)$/;
 var blankReg = /\s+/;
-var defaultName = 'defaultGroup';
+var notes = {};
 
-function hosts() {
-	this.HOSTS = os.platform() == 'win32' ? 'C:/Windows/System32/drivers/etc/hosts': '/etc/hosts';
-	this.EOL = os.EOL;
+function hosts(defaultName) {
+    this.defaultName = defaultName || 'defaultGroup';
 	this.format();
 }
+/**
+notes 
+{
+    group1: '',
+    ...
+}
 
+hosts
+{
+    group1: [
+        {
+            ip:'',
+            domain: '',
+            disabled: '',
+            note:''
+        },
+        {
+            
+        }
+    ],
+    group2: [
+    
+    ]
+}
+*/
 hosts.prototype = {
 	constructor: hosts,
-	//返回所有的group object
+	//读取host内容并解析成一个json对象
 	get: function() {
-		var hostsstr = fs.readFileSync(this.HOSTS, 'utf-8');
+		var hostsstr = fs.readFileSync(HOSTS, 'utf-8');
 		//一个domain 对应一个ip
 		//先分组，再去重
 		//之后去重
-		var lines = hostsstr.split(this.EOL),
-		hostsobject = {},
-		currentName;
+		var lines = hostsstr.split(EOL);
+		var hostsobject = {};
+		var currentName;
+        var currentLog = [];
+        var uniq = {};
+        notes = {};
 		for (var i = 0; i < lines.length; i++) {
-			var line = lines[i],
-			nextline = lines[i + 1],
-			isGroupLine = line.match(groupReg);
-			if (isGroupLine) {
-				currentName = isGroupLine[1];
-				hostsobject[currentName] = [];
-			} else {
-				if (!this._isHostLine(line)) continue;
-				if (!currentName) currentName = defaultName;
-				hostsobject = this._addHosts(currentName, hostsobject, this._formatLine(line));
-			}
+			var line = this._parseLine(lines[i]);
+            if(!line) continue;
+            var type = line.type;
+            var val = line.value;
+            switch(type){
+                case 1:
+                    if(!currentName){
+                        currentName = defaultName;
+                        hostsobject[currentName] = [];
+                        if(currentLog.length > 0){
+                            notes[currentName] = currentLog.join(EOL);
+                            currentLog = [];
+                        }
+                    }
+                    val.forEach(function (item){
+                        var _item = uniq[currentName + item.domain + item.ip];
+                        if(!_item){
+                            hostsobject[currentName].push(item);
+                            _item = uniq[currentName + item.domain + item.ip] = item;
+                        }
+                        if(currentLog.length > 0){
+                            _item.note = (_item.note ? (_item.note + EOL) : '') + currentLog.join(EOL);
+                        }
+                        
+                    });
+                    currentLog = [];
+                    break;
+                case 2:
+                    currentLog.push(val);
+                    break;
+                case 3:
+                    currentName = val;
+                    hostsobject[currentName] = [];
+                    if(currentLog.length > 0){
+                        notes[currentName] = currentLog.join(EOL);
+                        currentLog = [];
+                    }
+                    break;
+                default:
+                    break;
+            }
 		}
+        if(currentLog.length > 0){
+            notes.bottom = currentLog.join(EOL);
+            currentLog = [];
+        }
 		return hostsobject;
-	},
-	//设置一个domain
-	set: function(domain, ip, groupName, olddomain, oldip) {
-		this._batchHost(function(hostsobject) {
-			groupName = groupName || defaultName;
-			if (!hostsobject[groupName]) hostsobject[groupName] = [];
-			var group = hostsobject[groupName];
-			var fixed = false;
-			if (olddomain && oldip) {
-				for (var i = 0; i < group.length; i++) {
-					if (group[i].domain == olddomain && group[i].ip == oldip) {
-						group[i].ip = ip;
-						group[i].domain = domain;
-						fixed = true;
-						break;
-					}
-				}
-			}
-			if (!fixed) {
-				var flg = false;
-				for (var key = 0; key < group.length; key++) {
-					if (group[key].domain == domain && group[key].ip == ip) {
-						flg = true;
-						break;
-					}
-				}
-				if (!flg) {
-					group.push({
-						ip: ip,
-						domain: domain,
-						disabled: false
-					});
-				}
-			}
-			return hostsobject;
-		});
-	},
-	addGroup: function(groupName) {
-		this._batchHost(function(hostsobject) {
-			if (!hostsobject[groupName]) hostsobject[groupName] = [];
-			return hostsobject;
-		});
-	},
-	removeGroup: function(groupName) {
-		this._batchHost(function(hostsobject) {
-			if (hostsobject[groupName]) delete hostsobject[groupName];
-			return hostsobject;
-		});
-	},
-	setGroup: function(oldName, newName) {
-		this._batchHost(function(hostsobject) {
-			if (hostsobject[oldName]) {
-				hostsobject[newName] = hostsobject[oldName];
-				delete hostsobject[oldName];
-			}
-			return hostsobject;
-		});
-	},
-	move: function(domain, ip, groupName, target_groupName) {
-		this._batchHost(function(hostsobject) {
-			var group = hostsobject[groupName];
-			if (group) {
-				var move;
-				for (var i = 0; i < group.length; i++) {
-					var host = group[i];
-					if (host.domain == domain && host.ip == ip) {
-						move = group.splice(i, 1);
-						break;
-					}
-				}
-				if (move && hostsobject[target_groupName]) hostsobject[target_groupName].push(move);
-			}
-			return hostsobject;
-		});
-	},
-	remove: function(domain, ip, groupName) {
-		this._batchHost(function(hostsobject) {
-			var group = hostsobject[groupName];
-			if (group) {
-				for (var i = 0; i < group.length; i++) {
-					var host = group[i];
-					if (host.domain == domain && host.ip == ip) {
-						group.splice(i, 1);
-						break;
-					}
-				}
-			}
-			return hostsobject;
-		});
-	},
-	setDomainDisabled: function(domain, ip, groupName, disabled) {
-		this._batchHost(function(hostsobject) {
-			var group = hostsobject[groupName];
-			if (group) {
-				for (var i = 0; i < group.length; i++) {
-					var host = group[i];
-					if (host.domain == domain && host.ip == ip) {
-						host.disabled = disabled;
-					}
-				}
-			}
-			return hostsobject;
-		});
-	},
-	//注释一个domain
-	disable: function(domain, ip, groupName) {
-		this.setDomainDisabled(domain, ip, groupName, true);
-	},
-	//去注释一个domain
-	active: function(domain, ip, groupName) {
-		this.setDomainDisabled(domain, ip, groupName, false);
-	},
-	setGroupDisabled: function(groupName, disabled) {
-		this._batchHost(function(hostsobject) {
-			var group = hostsobject[groupName];
-			if (group) {
-				for (var i = 0; i < group.length; i++) {
-					group[i].disabled = disabled;
-				}
-			}
-			return hostsobject;
-		});
-	},
-	//注释一个组
-	disableGroup: function(groupName) {
-		this.setGroupDisabled(groupName, true);
-	},
-	//激活一个组
-	activeGroup: function(groupName) {
-		this.setGroupDisabled(groupName, false);
 	},
 	//初始化hosts文件,生成默认分组
 	format: function() {
 		this._batchHost();
 	},
+    //设置一个domain
+	set: function(domain, ip, options) {
+        var defaultName = this.defaultName;
+        var updateHost = function (host){
+            host.domain = domain;
+            host.ip = ip;
+            typeof options.disabled !== 'undefined' ? host.disabled = options.disabled : '';
+            typeof options.note !== 'undefined' ? host.note = options.note :  '';
+        };
+        ip = ip || '127.0.0.1';
+        options = options || {};
+		this._batchHost(function(hostsobject) {
+			groupName = options.groupName || defaultName;
+			var group = hostsobject[groupName] = hostsobject[groupName] || [];
+            for(var i = 0; i < group.length; i++){
+                var host = group[i];
+                if((host.domain === domain && host.ip === ip) || (host.domain === options.olddomain && host.ip === options.oldip)){
+                    updateHost(host);
+                    return hostsobject;
+                }
+            }
+            group.push({
+                    ip: ip,
+                    domain: domain,
+                    disabled: !!options.disabled,
+                    note: options.note||''
+                });
+			return hostsobject;
+		});
+	},
+    //删除一个host
+	remove: function(domain, ip, groupName) {
+        groupName = groupName||this.defaultName;
+		this._batchHost(function(hostsobject) {
+			var group = hostsobject[groupName];
+			if (group) {
+                var _group = [];
+                for(var i = 0; i < group.length; i++){
+                    var host = group[i];
+                    if(host.domain === domain && host.ip === ip) continue;
+                    _group.push(host);
+                }
+                if(_group.length === group.length) return;
+                hostsobject[groupName] = _group;
+                return hostsobject;
+			}
+		});
+	},
+    //添加分组
+	addGroup: function(groupName, log) {
+        if(log){
+            notes[groupName] = log;
+        }
+		this._batchHost(function(hostsobject) {
+			if (hostsobject[groupName]) return;
+            hostsobject[groupName] = [];
+			return hostsobject;
+		});
+	},
+    //删除分组
+	removeGroup: function(groupName) {
+		this._batchHost(function(hostsobject) {
+			if (hostsobject[groupName]){
+                delete hostsobject[groupName];
+                return hostsobject;
+            }
+		});
+	},
+    //修改分组名
+	setGroup: function(oldName, newName) {
+		this._batchHost(function(hostsobject) {
+            if (hostsobject[oldName] && !hostsobject[newName]) {
+                hostsobject[newName] = hostsobject[oldName];
+                delete hostsobject[oldName];
+                return hostsobject;
+			}
+		});
+	},
+    //将一条host从一个组移动到另一个组
+	move: function(domain, ip, groupName, target_groupName) {
+		this._batchHost(function(hostsobject) {
+			var group = hostsobject[groupName];
+			var t_group = hostsobject[target_groupName] = hostsobject[target_groupName] || [];
+			if (group) {
+                var move, i;
+                //目标分组里是否存在该条host，若存在则不作处理。
+                for(i = 0; i < t_group.length; i++){
+                    var host = t_group[i];
+                    if(host.domain === domain && host.ip === ip){
+                        return;
+                    }
+                }
+                for(i = 0; i < group.length; i++){
+                    var host = group[i];
+                    if(host.domain === domain && host.ip === ip){
+                        t_group.push(host);
+                        group.splice(i, 1);
+                        break;
+                    }
+                }
+                return hostsobject;
+			}
+		});
+	},
+	//注释一个domain
+	disable: function(domain, ip, groupName) {
+		this.setDomainDisabled(domain, ip, groupName || defaultName, 1);
+	},
+	//开启一个domain
+	active: function(domain, ip, groupName) {
+		this.setDomainDisabled(domain, ip, groupName || defaultName, 0);
+	},
+	setDomainDisabled: function(domain, ip, groupName, disabled) {
+		this._batchHost(function(hostsobject) {
+			var group = hostsobject[groupName];
+			if (group) {
+                for(var i = 0; i < group.length; i++){
+                    var host = group[i];
+                    if(host.domain === domain && host.ip === ip){
+                        if(host.disabled == disabled){
+                            return;
+                        }
+                        host.disabled = disabled;
+                        return hostsobject;
+                    }
+                }
+			}
+		});
+	},
+	//注释一个组
+	disableGroup: function(groupName) {
+		this.setGroupDisabled(groupName, 1);
+	},
+	//激活一个组
+	activeGroup: function(groupName) {
+		this.setGroupDisabled(groupName, 0);
+	},
+	setGroupDisabled: function(groupName, disabled) {
+		this._batchHost(function(hostsobject) {
+			var group = hostsobject[groupName];
+            if(group){
+                for(var i = 0; i < group.length; i++){
+                    var host = group[i];
+                    host.disabled = disabled;
+                }
+                return hostsobject;
+            }
+		});
+	},
+    _parseLine: function (line){
+        var obj;
+        var line = line.trim();
+        if(line){
+            var isGroupLine = line.match(groupReg);
+            obj = {};
+            if(isGroupLine){
+                obj.type = 3;
+                obj.value = isGroupLine[1];
+            }else{
+                var line2 = line.split(blankReg);
+                if(line2.length < 2 || !line2[0].match(/^\d|#[\d]/g)){
+                    obj.type = 2;
+                    obj.value = line;
+                }else{
+                    var ip = line2.shift();
+                    var domains = line2;
+                    var disabled = (/^#/).test(ip);
+                    if(disabled){
+                        ip = ip.slice(1);
+                    }
+                    obj.type = 1;
+                    obj.value = [];
+                    domains.forEach(function (domain){
+                        obj.value.push({
+                            ip: ip,
+                            domain: domain,
+                            disabled: disabled
+                        });
+                    });
+                }
+            }
+        }
+        return obj;
+    },
 	_batchHost: function(fn) {
 		var hostsobject = this.get();
 		hostsobject = fn ? fn(hostsobject) : hostsobject;
+        if(!hostsobject) return;
 		var linesStr = this._hostTostr(hostsobject);
-		fs.writeFileSync(this.HOSTS, linesStr);
+		fs.writeFileSync(HOSTS, linesStr);
 	},
 	_hostTostr: function(hostobj) {
 		var lines = [];
 		for (var i in hostobj) {
+            var group = hostobj[i];
+            notes[i] ? lines.push(notes[i]) : '';
 			lines.push('## @' + i);
-			hostobj[i].forEach(function(host) {
-				var line = '';
-				if (host.disabled) line += '#';
-				line += host.ip + ' ' + host.domain;
-				lines.push(line);
-			});
+            for(var k = 0; k < group.length; k++){
+                var host = group[k];
+                var line = host.disabled ? "#" : '';
+                host.note ? lines.push(host.note) : '';
+                line += host.ip + ' ' + host.domain;
+                lines.push(line);
+            }
+            lines.push("");
 		}
-		return lines.join(this.EOL);
-	},
-	_addHosts: function(name, group, line) {
-		if (!group[name]) group[name] = [];
-		for (var i in line) {
-			line[i]['domain'] = i;
-			group[name].push(line[i]);
-		}
-		return group;
-	},
-	_isHostLine: function(line) {
-		if (line.trim() === '') return false;
-		line = line.split(blankReg);
-		if (line.length < 2 || ! line[0].match(/^\d|#[\d]/g)) return false;
-		return true;
-	},
-	_formatLine: function(line) {
-		line = line.split(blankReg);
-		var hostline = {},
-		ip = line.shift(),
-		domains = line,
-		disabled = (/^#/).test(ip);
-		if (disabled) ip = ip.slice(1);
-		domains.forEach(function(domain) {
-			hostline[domain] = {
-				ip: ip,
-				disabled: disabled
-			};
-		});
-		return hostline;
+        notes.bottom ? lines.push(notes.bottom) : '';
+		return lines.join(EOL);
 	}
 };
 
