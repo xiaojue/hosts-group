@@ -24,13 +24,13 @@ hosts.prototype = {
 		//一个domain 对应一个ip
 		//先分组，再去重
 		//之后去重
-		var lines = hostsstr.split(this.EOL);
-		var hostsobject = {};
-		var currentName;
+		var lines = hostsstr.split(this.EOL),
+		hostsobject = {},
+		currentName;
 		for (var i = 0; i < lines.length; i++) {
-			var line = lines[i];
-			var nextline = lines[i + 1];
-			var isGroupLine = line.match(groupReg);
+			var line = lines[i],
+			nextline = lines[i + 1],
+			isGroupLine = line.match(groupReg);
 			if (isGroupLine) {
 				currentName = isGroupLine[1];
 				hostsobject[currentName] = [];
@@ -227,4 +227,3 @@ hosts.prototype = {
 };
 
 module.exports = new hosts();
-
