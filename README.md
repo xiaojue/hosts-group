@@ -19,8 +19,9 @@ var hosts = require('hosts-group');
         {
             groupName: "",//组名，默认defaultGroup
             disabled: true/false,//true-注释 false-启用，默认false
-            log: "",//注释，可选
-            olddomain: ""//原域名，可选
+            note: "",//注释，可选
+            olddomain: "",//原域名，可选
+            oldip: ""//原ip，可选
         }
 */
 hosts.set(domain, ip, options);
@@ -28,16 +29,17 @@ hosts.set(domain, ip, options);
 /**
 *@description 删除一个host
 *@param domain [String] 域名
+        ip [String] ip
         groupName  [String] 组名，默认defaultGroup
 */
-hosts.remove(domain, groupName);
+hosts.remove(domain, id, groupName);
 
 /**
 *@description 添加一个分组
 *@param groupName [String] 组名
-        log  [String] 注释，可选
+        note  [String] 注释，可选
 */
-hosts.addGroup(groupName, log);
+hosts.addGroup(groupName, note);
 
 /**
 *@description 设置修改分组名
@@ -55,24 +57,27 @@ hosts.removeGroup(groupName);
 /**
 *@description 将一个host移动到另一个分组
 *@param domain [String] 域名 
+        ip [String] ip
         groupName [String] 原组名
         target_groupName [String] 目标组名
 */
-hosts.move(domain, groupName, target_groupName);
+hosts.move(domain, ip, groupName, target_groupName);
 
 /**
 *@description 注释一个host
 *@param domain [String] 域名 
+        ip [String] ip
         groupName [String] 组名，默认defaultGroup
 */
-hosts.disable(domain, groupName);
+hosts.disable(domain, ip, groupName);
 
 /**
 *@description 启用一个host
 *@param domain [String] 域名
+        ip [String] ip
         groupName [String] 组名，默认defaultGroup
 */
-hosts.active(domain, groupName);
+hosts.active(domain, ip, groupName);
 
 /**
 *@description 注释一个组的host
