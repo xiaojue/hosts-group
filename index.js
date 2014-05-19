@@ -75,7 +75,7 @@ hosts.prototype = {
 			switch (type) {
 			case 1:
 				if (!currentName) {
-					currentName = defaultName;
+					currentName = this.defaultName;
 					hostsobject[currentName] = [];
 					if (currentLog.length > 0) {
 						notes[currentName] = currentLog.join(EOL);
